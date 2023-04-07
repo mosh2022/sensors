@@ -7,7 +7,7 @@
 #define MESH_PORT 5555
 
 #define DHTTYPE DHT11 
-#define DHTPIN 1 
+#define DHTPIN 3 
 #define SOILPIN A0
 #define WINDOWPIN 7
 
@@ -111,5 +111,5 @@ void loop() {
   sendMessage();
 
   Serial.println("------------------------------");
-  delay(500);
+  delay(1000);
 }

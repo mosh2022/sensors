@@ -5,8 +5,8 @@
 #define MESH_PASSWORD "Password"
 #define MESH_PORT 5555
 
-#define WATERPIN 12
-#define HUMIDIFIERPIN 16
+#define WATERPIN 0
+#define HUMIDIFIERPIN 6
 #define SPRINKLERPIN 5
 
 Scheduler userScheduler;
@@ -66,12 +66,7 @@ void writeHumidifireControl() {
 }
 
 void writeSprinklerControl() {
-  int averageMoisture = (receivedData.soilMoisture1 + receivedData.soilMoisture2) / 2;
-  if (averageMoisture <= 80) {
-    digitalWrite(SPRINKLERPIN, 1);
-  } else {
-    digitalWrite(SPRINKLERPIN, 0);
-  }
+  
 }
 
 void newConnectionCallback(uint32_t nodeId) {
@@ -87,7 +82,6 @@ void nodeTimeAdjustedCallback(int32_t offset) {
 }
 
 void setup() {
-  pinMode(SPRINKLERPIN, OUTPUT);
   Serial.begin(115200);
 
   mesh.setDebugMsgTypes(ERROR | STARTUP);
@@ -102,7 +96,12 @@ void setup() {
 void loop() {
   mesh.update();
   readWaterLevel();
-  writeSprinklerControl();
+  if (((receivedData.soilMoisture1 + receivedData.soilMoisture2)/2) < 50) {
+    digitalWrite(5, HIGH); 
+    delay(2000);
+    digitalWrite(5, LOW); 
+    Serial.println("test");
+  }
 
-  delay(500);
+  delay(1000);
 }

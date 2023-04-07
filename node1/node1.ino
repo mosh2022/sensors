@@ -7,7 +7,7 @@
 #define MESH_PORT 5555
 
 #define DHTTYPE DHT11 
-#define DHTPIN 16 
+#define DHTPIN 3 
 #define SOILPIN A0
 
 Scheduler userScheduler;
@@ -68,7 +68,6 @@ void nodeTimeAdjustedCallback(int32_t offset) {
 }
 
 void setup() {
-  pinMode(DHTPIN, INPUT);
   Serial.begin(115200);
 
   mesh.setDebugMsgTypes(ERROR | STARTUP);
@@ -87,5 +86,5 @@ void loop() {
   sendMessage();
 
   Serial.println("------------------------------");
-  delay(500);
+  delay(1000);
 }
