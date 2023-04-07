@@ -7,7 +7,7 @@
 #define MESH_PORT 5555
 
 #define DHTTYPE DHT11 
-#define DHTPIN 3 
+#define DHTPIN 16 
 #define SOILPIN A0
 
 Scheduler userScheduler;
@@ -18,8 +18,8 @@ struct Node1DataToSend {
   float airTemperature;
   float airHumidity;
 };
-
 Node1DataToSend data;
+
 DHT dht(DHTPIN, DHTTYPE);
 
 void sendMessage() {
@@ -35,9 +35,16 @@ void sendMessage() {
   Serial.println("Sent message");
 }
 
+
+void receivedCallback(uint32_t from, String &msg) {
+  Serial.printf("startHere: Received from %u msg=%s\n", from, msg.c_str());
+}
+
 void readSoilMoisture() {
-  data.soilMoisture = analogRead(SOILPIN);
-  Serial.println(analogRead(SOILPIN));
+  int soilMoistureRaw = analogRead(SOILPIN);
+  data.soilMoisture = map(soilMoistureRaw, 0, 680, 0, 100);
+  Serial.print(data.soilMoisture);
+  Serial.print(", "); 
 }
 
 void readAirIndicators() {
@@ -46,10 +53,6 @@ void readAirIndicators() {
   Serial.print(dht.readTemperature()); 
   Serial.print(", "); 
   Serial.println(dht.readHumidity());
-}
-
-void receivedCallback(uint32_t from, String &msg) {
-  Serial.printf("startHere: Received from %u msg=%s\n", from, msg.c_str());
 }
 
 void newConnectionCallback(uint32_t nodeId) {
@@ -65,6 +68,7 @@ void nodeTimeAdjustedCallback(int32_t offset) {
 }
 
 void setup() {
+  pinMode(DHTPIN, INPUT);
   Serial.begin(115200);
 
   mesh.setDebugMsgTypes(ERROR | STARTUP);
@@ -77,9 +81,11 @@ void setup() {
 }
 
 void loop() {
+  mesh.update();
   readSoilMoisture();
   readAirIndicators();
   sendMessage();
-  mesh.update();
-  delay(1000);
+
+  Serial.println("------------------------------");
+  delay(500);
 }

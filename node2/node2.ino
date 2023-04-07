@@ -6,21 +6,31 @@
 #define MESH_PASSWORD "Password"
 #define MESH_PORT 5555
 
-#define DHTPIN 3 
 #define DHTTYPE DHT11 
-
+#define DHTPIN 1 
 #define SOILPIN A0
+#define WINDOWPIN 7
 
 Scheduler userScheduler;
 painlessMesh mesh;
+
+struct ReceivedData {
+  float airTemperature1;
+};
+ReceivedData receivedData;
 
 struct Node2DataToSend {
   int soilMoisture;
   float airTemperature;
   float airHumidity;
 };
-
 Node2DataToSend data;
+
+struct Node2LogsToSend {
+  
+};
+Node2LogsToSend logs;
+
 DHT dht(DHTPIN, DHTTYPE);
 
 void sendMessage() {
@@ -36,28 +46,38 @@ void sendMessage() {
   Serial.println("Sent message");
 }
 
+void receivedCallback(uint32_t from, String &msg) {
+  Serial.printf("Received from %u msg=%s\n", from, msg.c_str());
+
+  DynamicJsonDocument jsonDoc(1024);
+  DeserializationError error = deserializeJson(jsonDoc, msg);
+
+  if (!error) {
+    if (jsonDoc.containsKey("airTemperature1")) {
+      receivedData.airTemperature1 = jsonDoc["airTemperature1"];
+    }
+  }  
+  Serial.print("Node1 air temperature: ");
+  Serial.println(receivedData.airTemperature1);
+}
+
 void readSoilMoisture() {
-  data.soilMoisture = analogRead(SOILPIN);
-  Serial.println(analogRead(SOILPIN));
+  int soilMoistureRaw = analogRead(SOILPIN);
+  data.soilMoisture = map(soilMoistureRaw, 0, 680, 0, 100);
+  Serial.print(data.soilMoisture);
+  Serial.print(", "); 
 }
 
 void readAirIndicators() {
   data.airTemperature = dht.readTemperature(); 
   data.airHumidity = dht.readHumidity(); 
-  Serial.println(dht.readTemperature(), dht.readHumidity());
-}
-
-void readTensorIndicator() {
-  int tensor = analogRead(A0);
-  Serial.println(tensor);
+  Serial.print(dht.readTemperature()); 
+  Serial.print(", "); 
+  Serial.println(dht.readHumidity());
 }
 
 void writeWindowControl() {
 
-}
-
-void receivedCallback(uint32_t from, String &msg) {
-  Serial.printf("startHere: Received from %u msg=%s\n", from, msg.c_str());
 }
 
 void newConnectionCallback(uint32_t nodeId) {
@@ -85,9 +105,11 @@ void setup() {
 }
 
 void loop() {
+  mesh.update();
   readSoilMoisture();
   readAirIndicators();
   sendMessage();
-  mesh.update();
-  delay(1000);
+
+  Serial.println("------------------------------");
+  delay(500);
 }

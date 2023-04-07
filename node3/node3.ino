@@ -5,25 +5,25 @@
 #define MESH_PASSWORD "Password"
 #define MESH_PORT 5555
 
-#define WATERPIN 0
-#define HUMIDIFIERPIN 1
-#define SPRINKLERPIN 3
+#define WATERPIN 12
+#define HUMIDIFIERPIN 16
+#define SPRINKLERPIN 5
 
-struct RecivedData {
+Scheduler userScheduler;
+painlessMesh mesh;
+
+struct ReceivedData {
   int soilMoisture1;
   float airHumidity1;
   int soilMoisture2;
   float airHumidity2;  
 };
+ReceivedData receivedData;
 
 struct Node3LogsToSend {
   
 };
-
-RecivedData recivedData;
-
-Scheduler userScheduler;
-painlessMesh mesh;
+Node3LogsToSend logs;
 
 void receivedCallback(uint32_t from, String &msg) {
   Serial.printf("Received from %u msg=%s\n", from, msg.c_str());
@@ -34,26 +34,44 @@ void receivedCallback(uint32_t from, String &msg) {
   if (!error) {
     if (jsonDoc.containsKey("soilMoisture1") &&
         jsonDoc.containsKey("airHumidity1")) {
-      recivedData.soilMoisture1 = jsonDoc["soilMoisture1"];
-      recivedData.airHumidity1 = jsonDoc["airHumidity1"];
-      Serial.println("Received data from Node1");
+      receivedData.soilMoisture1 = jsonDoc["soilMoisture1"];
+      receivedData.airHumidity1 = jsonDoc["airHumidity1"];
     }
 
     if (jsonDoc.containsKey("soilMoisture2") &&
         jsonDoc.containsKey("airHumidity2")) {
-      recivedData.soilMoisture2 = jsonDoc["soilMoisture2"];
-      recivedData.airHumidity2 = jsonDoc["airHumidity2"];
-      Serial.println("Received data from Node2");
+      receivedData.soilMoisture2 = jsonDoc["soilMoisture2"];
+      receivedData.airHumidity2 = jsonDoc["airHumidity2"];
     }
   }
+  Serial.print("Node1 soil moisture: ");
+  Serial.println(receivedData.soilMoisture1);
+  Serial.print("Node1 air humidity: ");
+  Serial.println(receivedData.airHumidity1);
+
+  Serial.print("Node2 soil moisture: ");
+  Serial.println(receivedData.soilMoisture2);
+  Serial.print("Node2 air humidity: ");
+  Serial.println(receivedData.airHumidity2);
+  Serial.println("------------------------------");
 }
 
-void humidifire() {
+void readWaterLevel() {
+  int waterLevel = digitalRead(WATERPIN);
+  Serial.println(waterLevel);
+}
+
+void writeHumidifireControl() {
 
 }
 
-void sprinkler() {
-  
+void writeSprinklerControl() {
+  int averageMoisture = (receivedData.soilMoisture1 + receivedData.soilMoisture2) / 2;
+  if (averageMoisture <= 80) {
+    digitalWrite(SPRINKLERPIN, 1);
+  } else {
+    digitalWrite(SPRINKLERPIN, 0);
+  }
 }
 
 void newConnectionCallback(uint32_t nodeId) {
@@ -69,6 +87,7 @@ void nodeTimeAdjustedCallback(int32_t offset) {
 }
 
 void setup() {
+  pinMode(SPRINKLERPIN, OUTPUT);
   Serial.begin(115200);
 
   mesh.setDebugMsgTypes(ERROR | STARTUP);
@@ -82,20 +101,8 @@ void setup() {
 
 void loop() {
   mesh.update();
+  readWaterLevel();
+  writeSprinklerControl();
 
-  int waterLevel = digitalRead(WATERPIN);
-  Serial.println(waterLevel);
-
-  Serial.print("Node1 soil moisture: ");
-  Serial.println(recivedData.soilMoisture1);
-  Serial.print("Node1 air humidity: ");
-  Serial.println(recivedData.airHumidity1);
-
-  Serial.print("Node2 soil moisture: ");
-  Serial.println(recivedData.soilMoisture2);
-  Serial.print("Node2 air humidity: ");
-  Serial.println(recivedData.airHumidity2);
-  Serial.println("------------------------------");
-
-  delay(1000);
+  delay(500);
 }
